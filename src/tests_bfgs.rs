@@ -78,4 +78,35 @@ mod tests {
                 .lt(&f64::EPSILON)
         );
     }
+
+    #[test]
+    /// From the docstring of `scipy.optimize.fsolve', we find a solution to the
+    /// system of equations:
+    /// `x0*cos(x1) = 4,  x1*x0 - x1 = 5`
+    ///
+    /// `x = [6.50409711, 0.90841421]`
+    fn test_solve() {
+        let x0 = Col::<f64>::from_fn(2, |_| 1_f64);
+        let f = |x: ColRef<f64>| {
+            let tmp = col![
+                x.read(0) * x.read(1).cos() - 4_f64,
+                x.read(0) * x.read(1) - x.read(1) - 5_f64,
+            ];
+            tmp.as_ref().transpose() * tmp.as_ref()
+        };
+        let g = |x: ColRef<f64>| {
+            col![
+                // 2 * (x0 * cos(x1) - 4) * (cos(x1)) + 2 * (x0 * x1 - x1 - 5) * (x1),
+                // 2 * (x0 * cos(x1) - 4) * (-x0 * sin(x1)) + 2 * (x0 * x1 - x1 - 5) * (x0 -1),
+                2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (x.read(1).cos())
+                    + 2_f64 * (x.read(0) * x.read(1) - x.read(1) - 5_f64) * x.read(1),
+                2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (-x.read(0) * x.read(1).sin())
+                    + 2_f64 * (x.read(0) * x.read(1) - x.read(1) - 5_f64) * (x.read(0) - 1_f64),
+            ]
+        };
+        let res = bfgs(x0, f, g, FTol::High).unwrap();
+        let target = col![6.504_097_11_f64, 0.908_414_21_f64,];
+
+        assert!(l2_distance(res.as_ref(), target.as_ref()).lt(&f64::EPSILON));
+    }
 }
