@@ -6,9 +6,7 @@ mod tests {
     use faer::{col, Col, ColRef};
 
     fn l2_distance<E: RealMathOps>(x: ColRef<E>, y: ColRef<E>) -> E {
-        let delta = x - y;
-
-        unsafe { (delta.as_ref() * delta.as_ref().transpose()).read_unchecked(0, 0) }
+        (x.as_ref() - y.as_ref()).transpose() * (x.as_ref() - y.as_ref())
     }
 
     #[test]
