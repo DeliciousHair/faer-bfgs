@@ -96,8 +96,6 @@ mod tests {
         };
         let g = |x: ColRef<f64>| {
             col![
-                // 2 * (x0 * cos(x1) - 4) * (cos(x1)) + 2 * (x0 * x1 - x1 - 5) * (x1),
-                // 2 * (x0 * cos(x1) - 4) * (-x0 * sin(x1)) + 2 * (x0 * x1 - x1 - 5) * (x0 -1),
                 2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (x.read(1).cos())
                     + 2_f64 * (x.read(0) * x.read(1) - x.read(1) - 5_f64) * x.read(1),
                 2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (-x.read(0) * x.read(1).sin())
