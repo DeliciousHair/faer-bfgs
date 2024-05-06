@@ -1,6 +1,6 @@
 # faer-bfgs
 
-This package contains an implementation of [BFGS][wikipedia], and algorithm for
+This package contains an implementation of [BFGS][wikipedia], an algorithm for
 minimizing convex $C^2$ smooth functions.
 
 This is a direct port of the existing [bfgs crate][src] using `faer` for all
