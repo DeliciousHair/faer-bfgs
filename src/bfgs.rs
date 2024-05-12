@@ -82,7 +82,7 @@ fn line_search<E: RealMathOps, F: Fn(E) -> E>(f: F) -> Result<E> {
 
     let two = E::faer_from_f64(2_f64);
 
-    for i in -20..20 {
+    for i in -20..=20 {
         eps = two.faer_powi(i);
         fval = f(eps);
         if fval.lt(&best_fval) {
@@ -136,7 +136,7 @@ pub fn bfgs<E: RealMathOps, F: Fn(ColRef<E>) -> E, G: Fn(ColRef<E>) -> Col<E>>(
     let mut b_inv: Mat<E> = Mat::identity(n, n);
 
     let mut y: Col<E>;
-    let mut s: Col<E> = Col::zeros(n);
+    let mut s: Col<E>;
     let mut binv_y: Col<E> = Col::zeros(n);
 
     let mut sy: E;
@@ -156,14 +156,8 @@ pub fn bfgs<E: RealMathOps, F: Fn(ColRef<E>) -> E, G: Fn(ColRef<E>) -> Col<E>>(
 
         // Find a good step size
         let epsilon = line_search(|e| {
-            let mut arg: Col<E> = Col::zeros(n);
-            zipped!(arg.as_mut(), search_dir.as_ref(), x.as_ref()).for_each(
-                |unzipped!(mut arg, search_dir, x)| {
-                    let d = search_dir.read();
-                    let x = x.read();
-                    arg.write((d.faer_mul(e)).faer_add(x));
-                },
-            );
+            let arg = faer::scale(e) * search_dir.as_ref() + x.as_ref();
+
             f(arg.as_ref())
         })?;
 
@@ -172,21 +166,15 @@ pub fn bfgs<E: RealMathOps, F: Fn(ColRef<E>) -> E, G: Fn(ColRef<E>) -> Col<E>>(
         let g_x_old = g_x;
 
         // Take a step in the search direction
-        zipped!(x.as_mut(), search_dir.as_ref()).for_each(|unzipped!(mut x, search_dir)| {
-            let d = search_dir.read();
-            let elem = x.read();
-            x.write(elem.faer_add(epsilon.faer_mul(d)))
-        });
+        let step = faer::scale(epsilon) * search_dir.as_ref();
+        x += step.as_ref();
 
         f_x = f(x.as_ref());
         g_x = g(x.as_ref());
 
         // Compute deltas between old and new
         y = g_x.as_ref() - g_x_old.as_ref();
-        zipped!(s.as_mut(), search_dir.as_ref()).for_each(|unzipped!(mut s, search_dir)| {
-            let d = search_dir.read();
-            s.write(epsilon.faer_mul(d))
-        });
+        s = faer::scale(epsilon) * search_dir.as_ref();
         sy = s.as_ref().transpose() * y.as_ref();
         ss = s.as_ref() * s.as_ref().transpose();
 
@@ -207,12 +195,7 @@ pub fn bfgs<E: RealMathOps, F: Fn(ColRef<E>) -> E, G: Fn(ColRef<E>) -> Col<E>>(
         let update_add = sy
             .faer_add(y.transpose() * binv_y.as_ref())
             .faer_mul(sy.faer_powi(-2));
-        let mut to_add = Mat::<E>::zeros(n, n);
-        zipped!(to_add.as_mut(), ss.as_ref()).for_each(|unzipped!(mut to_add, ss)| {
-            let e = ss.read();
-            to_add.write(e.faer_mul(update_add));
-        });
-
+        let to_add = faer::scale(update_add) * ss.as_ref();
         let to_sub: Mat<E> = Mat::from_fn(n, n, |i, j| unsafe {
             let p = binv_y.read_unchecked(i).faer_mul(s.read_unchecked(j));
             let pt = s.read_unchecked(i).faer_mul(binv_y.read_unchecked(j));

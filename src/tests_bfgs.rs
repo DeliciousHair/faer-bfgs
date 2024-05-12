@@ -95,12 +95,14 @@ mod tests {
             tmp.as_ref().transpose() * tmp.as_ref()
         };
         let g = |x: ColRef<f64>| {
-            col![
+            let jac = col![
                 2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (x.read(1).cos())
                     + 2_f64 * (x.read(0) * x.read(1) - x.read(1) - 5_f64) * x.read(1),
                 2_f64 * (x.read(0) * x.read(1).cos() - 4_f64) * (-x.read(0) * x.read(1).sin())
                     + 2_f64 * (x.read(0) * x.read(1) - x.read(1) - 5_f64) * (x.read(0) - 1_f64),
-            ]
+            ];
+
+            jac
         };
         let res = bfgs(x0, f, g, FTol::High).unwrap();
         let target = col![6.504_097_11_f64, 0.908_414_21_f64,];
