@@ -17,7 +17,7 @@ time.
 Minimize a globally convex function:
 
 ```rust
-use faer::{col, Col, ColRef};
+use faer::{col, Col, ColRef, scale};
 use faer_bfgs::bfgs::{bfgs, FTol};
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
     //   f(x) = <x,x>
     //   g(x) = 2x
     let f = |x: ColRef<f64>| x.as_ref().transpose() * x.as_ref();
-    let g = |x: ColRef<f64>| Col::<f64>::from_fn(x.nrows(), |i| x.read(i) * 2_f64);
+    let g = |x: ColRef<f64>| scale(2_f64) * x.as_ref();
     let x_min = bfgs(x0, f, g, FTol::Moderate).unwrap();
 
     for i in 0..3 {
